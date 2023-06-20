@@ -1,47 +1,23 @@
-name: CI
 on:
-  # Only run when merging to master, or open/synchronize/reopen a PR.
-  push:
-    branches:
-      - master
-  pull_request:
-
-defaults:
-  run:
-    shell: bash
+  release:
+    types: [created]
 
 jobs:
-  test:
-    name: Test
-    runs-on: ${{ matrix.os }}
+  release:
+    name: release ${{ matrix.target }}
+    runs-on: ubuntu-latest
     strategy:
+      fail-fast: false
       matrix:
         include:
-          - os: ubuntu-latest
-            rust: stable
-          - os: ubuntu-latest
-            rust: beta
-          - os: ubuntu-latest
-            rust: nightly
-          - os: macos-latest
-            rust: stable
-          - os: windows-latest
-            rust: stable
-          - os: ubuntu-latest
-            # sync MSRV with README.md and all Cargo.toml
-            rust: 1.60.0
+          - target: x86_64-unknown-linux-musl
+            archive: tar.gz
     steps:
-    - uses: actions/checkout@master
-    - name: Install Rust
-      run: rustup update --no-self-update ${{ matrix.rust }} && rustup default ${{ matrix.rust }}
-    - name: Build and run tests
-      run: cargo test --workspace
-
-  rustfmt:
-    name: Rustfmt
-    runs-on: ubuntu-latest
-    steps:
-    - uses: actions/checkout@master
-    - name: Install Rust
-      run: rustup update stable && rustup default stable && rustup component add rustfmt
-    - run: cargo fmt --check
+      - uses: actions/checkout@master
+      - name: Compile and release
+        uses: rust-build/rust-build.action@v1.4.3
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          RUSTTARGET: ${{ matrix.target }}
+          ARCHIVE_TYPES: ${{ matrix.archive }}
